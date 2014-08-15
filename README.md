@@ -15,3 +15,11 @@ Just copy the Module to your Silverstripe root.
 
 For VideoFile usage (at least Ubuntu >= 14.04), install the following Packages on your System
 apt-get install libapache2-mod-php5 php5-cli php5-gd php5-xcache php5-tidy php5-curl php5-imagick php5-mcrypt php5-mysql mysql-server phpmyadmin libfaac0 libfaac-dev libx264-dev libx264-142 x264 libav-tools
+
+### Notice
+ * After each Update, set the new Tag
+```
+git tag -a v1.2.3.4 -m 'Version 1.2.3.4'
+git push -u origin v1.2.3.4
+```
+ * Also update the requirements in andrelohmann/silverstripe-apptemplate
