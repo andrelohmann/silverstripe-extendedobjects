@@ -159,7 +159,11 @@ class VideoFile extends File {
                 file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
                 
                 // Movie Object
-                $mov = new ffmpeg_movie($this->getFullPath());
+                $ffprobe = FFMpeg\FFProbe::create();
+                $mov = $ffprobe->format($this->getFullPath());
+                //$ffmpeg = FFMpeg\FFMpeg::create();
+                //$video = $ffmpeg->open($this->getFullPath());
+                //$video->frame(FFMpeg\Coordinate\TimeCode::fromSeconds(10))->save($this->getFullPath().'.jpg');
                 
                 // read data
                 if($this->processVideoInformation($mov, $LogFile)){
@@ -176,40 +180,21 @@ class VideoFile extends File {
             
             try{
                 $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nExtracted Information:\n";
-                $Message.= sprintf("file name = %s\n", $mov->getFileName());
-                $Message.= sprintf("duration = %s seconds\n", $mov->getDuration());
-                $Message.= sprintf("frame count = %s\n", $mov->getFrameCount());
-                $Message.= sprintf("frame rate = %0.3f fps\n", $mov->getFrameRate());
-                $Message.= sprintf("get bit rate = %d\n", $mov->getBitRate());
-                $Message.= sprintf("has audio = %s\n", $mov->hasAudio() == 0 ? 'No' : 'Yes');
-                
-                if ($mov->hasAudio()) {
-                    $Message.= sprintf("get audio stream id= %s\n", $mov->getAudioStreamId());
-                    $Message.= sprintf("get audio codec = %s\n", $mov->getAudioCodec());
-                    $Message.= sprintf("get audio bit rate = %d\n", $mov->getAudioBitRate());
-                    $Message.= sprintf("get audio sample rate = %d \n", $mov->getAudioSampleRate());
-                    $Message.= sprintf("get audio channels = %s\n", $mov->getAudioChannels());
-                }
-                
-                $Message.= sprintf("has video = %s\n", $mov->hasVideo() == 0 ? 'No' : 'Yes');
-                
-                if ($mov->hasVideo()) {
-                    $Message.= sprintf("frame height = %d pixels\n", $mov->getFrameHeight());
-                    $Message.= sprintf("frame width = %d pixels\n", $mov->getFrameWidth());
-                    $Message.= sprintf("get video codec = %s\n", $mov->getVideoCodec());
-                    $Message.= sprintf("get video bit rate = %d\n", $mov->getVideoBitRate());
-                    $Message.= sprintf("get pixel format = %s\n", $mov->getPixelFormat());
-                    $Message.= sprintf("get pixel aspect ratio = %s\n", $mov->getPixelAspectRatio());
-                }
+                $Message.= sprintf("file name = %s\n", $mov->get("filename"));
+                $Message.= sprintf("size = %s\n", $mov->get("size"));
+                $Message.= sprintf("duration = %s seconds\n", $mov->get("duration"));
+                $Message.= sprintf("bit rate = %d\n", $mov->get("bit_rate"));
+                $Message.= sprintf("format name = %s\n", $mov->get("format_name"));
+                $Message.= sprintf("format long name = %s\n", $mov->get("format_long_name"));
                 
                 $Message.= "\n";
                 
                 // Log the next message
                 file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
                 
-                $this->Duration = gmdate("H:i:s", $mov->getDuration());
-                $this->Width = $mov->getFrameWidth();
-                $this->Height = $mov->getFrameHeight();
+                $this->Duration = gmdate("H:i:s", $mov->get('duration'));
+                //$this->Width = $mov->getFrameWidth();
+                //$this->Height = $mov->getFrameHeight();
                 $this->write();
                 
                 return true;
@@ -233,7 +218,7 @@ class VideoFile extends File {
             $timestamps[] = '00:00:00'; // H:i:s
             
             // calculate total playtime in seconds devided by (no of previews - 1)
-            $stepsize = $mov->getDuration() / (Config::inst()->get('VideoFile', 'previews') - 1);
+            $stepsize = $mov->get('duration') / (Config::inst()->get('VideoFile', 'previews') - 1);
             for($i = 1; $i<10; $i++){
                 $timestamps[] = gmdate("H:i:s", ($stepsize * $i));
             }
@@ -252,6 +237,10 @@ class VideoFile extends File {
                 }
                 krsort($sizes);
                 $this->PreviewImageID = array_shift($sizes);
+                
+                $PreviewImage = $this->PreviewImage();
+                $this->Width = $PreviewImage->getWidth();
+                $this->Height = $PreviewImage->getHeight();
                 
                 $this->ProcessingStatus = 'finished';
                 $this->write();
@@ -281,7 +270,7 @@ class VideoFile extends File {
                 // FFMPEG Command
                 // https://trac.ffmpeg.org/wiki/Seeking%20with%20FFmpeg
                 // @TODO ffmpeg output should be written to logfile too
-                $cmd = "ffmpeg -ss ".$timestamp." -i ".$this->getFullPath()." -vframes 1 ".$tmpImage." >> ".$LogFile;
+                $cmd = "avconv -ss ".$timestamp." -i ".$this->getFullPath()." -vframes 1 ".$tmpImage." >> ".$LogFile;
                 $pid = shell_exec($cmd);
 
                 // prepare File path
