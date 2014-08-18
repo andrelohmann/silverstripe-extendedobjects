@@ -3,7 +3,8 @@
 	"type": "silverstripe-module",
 	"require": {
 		"php": ">=5.3.2",
-		"composer/installers": "*"
+		"composer/installers": "*",
+                "php-ffmpeg/php-ffmpeg": "~0.5"
 	},
 	"minimum-stability": "stable"
 }
