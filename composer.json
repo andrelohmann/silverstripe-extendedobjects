@@ -1,6 +1,15 @@
 {
 	"name": "andrelohmann-silverstripe/extendedobjects",
 	"type": "silverstripe-module",
+	"description": "Some Object extensions for Silverstripe. Extends VideoObject, Image, Date, ...",
+	"license": "BSD-3-Clause",
+	"keywords": ["silverstripe", "framework"],
+	"authors": [
+		{
+			"name": "Andre Lohmann",
+			"homepage": "https://github.com/andrelohmann"
+		}
+	],
 	"require": {
 		"php": ">=5.3.2",
 		"composer/installers": "*",
