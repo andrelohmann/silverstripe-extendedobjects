@@ -18,23 +18,23 @@ class ExtendedDate extends DataExtension {
             
             switch($format) {
                 case "seconds":
-                    return $diff->format('%s');
+                    return abs($value->getTimestamp() - $now->getTimestamp());
                 break;
             
                 case "minutes":
-                    return $diff->format('%i');
+                    return abs(round(($value->getTimestamp() - $now->getTimestamp())/60));
                 break;
              
                 case "hours":
-                    return $diff->format('%h');
+                    return abs(round(($value->getTimestamp() - $now->getTimestamp())/60/60));
                 break;
             
                 case "days":
-                    return $diff->format('%d');
+                    return abs(round(($value->getTimestamp() - $now->getTimestamp())/60/60/24));
                 break;
                 
                 case "months":
-                    return $diff->format('%m');
+                    return $diff->format('%m') + ($diff->format('%y')*12);
                 break;
                 
                 case "years":
