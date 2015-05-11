@@ -44,6 +44,27 @@ class ExtendedImage extends DataExtension {
 
                 return "data:image/".$type.";base64,".$Base64Image;
         }
+	
+	/**
+	 * Return an XHTML img tag for this Image,
+	 * or NULL if the image file doesn't exist on the filesystem.
+	 * 
+	 * @return string
+	 */
+	public function TagWithClass($cssclass) {
+		if(file_exists(Director::baseFolder() . '/' . $this->owner->Filename)) {
+			$url = $this->owner->getURL();
+			$title = ($this->owner->Title) ? $this->owner->Title : $this->owner->Filename;
+			if($this->owner->Title) {
+				$title = Convert::raw2att($this->owner->Title);
+			} else {
+				if(preg_match("/([^\/]*)\.[a-zA-Z0-9]{1,6}$/", $title, $matches)) {
+					$title = Convert::raw2att($matches[1]);
+				}
+			}
+			return "<img src=\"$url\" alt=\"$title\" class=\"$cssclass\" />";
+		}
+	}
         
         /**
          * Merge the Image onto anotherone fitting it with a min padding
@@ -260,6 +281,108 @@ class ExtendedImage extends DataExtension {
 				. " or Image::\$backend is not set.",E_USER_WARNING);
 		}else{
 			return $backend->paddedResize($width, $height, $background);
+                }
+	}
+        
+        /**
+         * Resize this Image by both width and height, using padded resize. Use in templates with $ColoredSetSize.
+         * @param type $widthheight separated by ":"
+         * @param type $background
+         */
+        public function TransparentSetSize($width, $height) {
+                return (($this->owner->getWidth() == $width) &&  ($this->owner->getHeight() == $height)) 
+			? $this->owner
+			: $this->owner->getTransparentFormattedImage('TransparentSetSize', $width, $height);
+	}
+
+	/**
+	 * Return an image object representing the image in the given format.
+	 * This image will be generated using generateFormattedImage().
+	 * The generated image is cached, to flush the cache append ?flush=1 to your URL.
+	 * @param string $format The name of the format.
+	 * @param string $arg1 An argument to pass to the generate function.
+	 * @param string $arg2 A second argument to pass to the generate function.
+	 * @param string $background Background-Color of the resized Image
+	 * @return Image_Cached
+	 */
+	public function getTransparentFormattedImage($format, $arg1 = null, $arg2 = null) {
+		if($this->owner->ID && $this->owner->Filename && Director::fileExists($this->owner->Filename)) {
+			$cacheFile = $this->owner->cacheTransparentFilename($format, $arg1, $arg2);
+
+			if(!file_exists(Director::baseFolder()."/".$cacheFile) || isset($_GET['flush'])) {
+				$this->owner->generateTransparentFormattedImage($format, $arg1, $arg2);
+			}
+                
+                        if(get_class($this->owner) == 'SecureImage') $cached = new SecureImage_Cached($cacheFile);
+                        else $cached = new Image_Cached($cacheFile);
+                
+			// Pass through the title so the templates can use it
+			$cached->owner->Title = $this->owner->Title;
+                        $cached->owner->ID = $this->owner->ID;
+                        $cached->owner->ParentID = $this->owner->ParentID;
+			return $cached;
+		}
+	}
+	
+	/**
+	 * Return the filename for the cached image, given it's format name and arguments.
+	 * @param string $format The format name.
+	 * @param string $arg1 The first argument passed to the generate function.
+	 * @param string $arg2 The second argument passed to the generate function.
+	 * @return string
+	 */
+	public function cacheTransparentFilename($format, $arg1 = null, $arg2 = null) {
+		$folder = $this->owner->ParentID ? $this->owner->Parent()->Filename : ASSETS_DIR . "/";
+		
+		$format = $format.$arg1.$arg2;
+                
+                if(get_class($this->owner) == 'SecureImage'){
+                    $file = pathinfo($this->owner->Name);
+                    return $folder . "_resampled/".md5($format."-".$file['filename']).".".$file['extension'];
+                }else{
+                    return $folder . "_resampled/".$format."-".$this->owner->Name;
+                }
+	}
+	
+	/**
+	 * Generate an image on the specified format. It will save the image
+	 * at the location specified by cacheFilename(). The image will be generated
+	 * using the specific 'generate' method for the specified format.
+	 * @param string $format Name of the format to generate.
+	 * @param string $arg1 Argument to pass to the generate method.
+	 * @param string $arg2 A second argument to pass to the generate method.
+	 */
+	public function generateTransparentFormattedImage($format, $arg1 = null, $arg2 = null) {
+		$cacheFile = $this->owner->cacheTransparentFilename($format, $arg1, $arg2);
+		
+		$backend = Injector::inst()->createWithArgs(Image::get_backend(), array(
+			Director::baseFolder()."/" . $this->owner->Filename
+		));
+                
+		if($backend->hasImageResource()){
+			$generateFunc = "generate$format";		
+			if($this->owner->hasMethod($generateFunc)){
+				$backend = $this->owner->$generateFunc($backend, $arg1, $arg2);
+				if($backend){
+					$backend->writeTo(Director::baseFolder()."/" . $cacheFile);
+				}
+	
+			} else {
+				USER_ERROR("Image::generateTransparentFormattedImage - Image $format function not found.",E_USER_WARNING);
+			}
+		}
+	}
+	
+	/**
+	 * Resize this Image by both width and height, using padded resize. Use in templates with $SetSize.
+	 * @return GD
+	 */
+	public function generateTransparentSetSize(Image_Backend $backend, $width, $height) {
+		if(!$backend){
+			user_error("Image::generateTransparentFormattedImage - generateTransparentSetSize is being called by legacy code"
+				. " or Image::\$backend is not set.",E_USER_WARNING);
+		}else{
+			return $backend->transparentPaddedResize($width, $height);
                 }
 	}
         
