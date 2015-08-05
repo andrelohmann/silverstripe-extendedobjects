@@ -74,6 +74,10 @@ class VideoFile extends File {
                 if($this->PreviewImageID) return $this->PreviewImage()->SetRatioSize($width, $height)->getURL();
                 return $this->Icon();
 	}
+	
+		public function getThumbnail($width, $height){
+			return $this->Thumbnail($width, $height);
+		}
         
         public function Resolution(){
             return $this->Width."x".$this->Height;
