@@ -15,10 +15,10 @@ class ExtendedGDBackend extends DataExtension {
     public function merge(GDBackend $image){
         
         imagealphablending($this->owner->getImageResource(), false);
-	imagesavealpha($this->owner->getImageResource(), true);
+		imagesavealpha($this->owner->getImageResource(), true);
         
         imagealphablending($image->getImageResource(), false);
-	imagesavealpha($image->getImageResource(), true);
+		imagesavealpha($image->getImageResource(), true);
         
         $srcX = 0;
         $srcY = 0;
