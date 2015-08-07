@@ -28,6 +28,8 @@ class VideoFile extends File {
     private static $has_many = array(
 		'TimelineImages' => 'VideoImage'
     );
+	
+	protected $log_file = null;
         
     public function PreviewThumbnail(){
 		if($this->ProcessingStatus == 'finished' && $this->PreviewImageID > 0)
@@ -97,20 +99,32 @@ class VideoFile extends File {
         $pid = shell_exec($cmd);
     }
 	
+	protected function getLogFile(){
+		if(!$this->log_file){
+			$this->log_file = TEMP_FOLDER.'/VideoFileProcessing-ID-'.$this->ID.'-'.md5($this->getRelativePath()).'.log';
+		}
+		return $this->log_file;
+	}
+	
+	protected function appendLog($LogFile, $message, $extraString = false){
+		$Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\n".$message."\n\n";
+		if($extraString) $Message.= $extraString."\n\n";
+		// Write the contents to the logfile, 
+        // using the FILE_APPEND flag to append the content to the end of the file
+        // and the LOCK_EX flag to prevent anyone else writing to the file at the same time
+        file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+	}
+	
 	// process the Video
     public function process($LogFile = false, $runAfterProcess = true){
             
-		if(!$LogFile) $LogFile = TEMP_FOLDER.'/VideoFileProcessing-ID-'.$this->ID.'-'.md5($this->getRelativePath()).'.log';
+		if(!$LogFile) $LogFile = $this->getLogFile();
             
         if($this->ProcessingStatus == 'new'){
 			$this->ProcessingStatus = 'processing';
             $this->write();
                 
-            $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nProcessing for File ".$this->getRelativePath()." started\n\n";
-            // Write the contents to the logfile, 
-            // using the FILE_APPEND flag to append the content to the end of the file
-            // and the LOCK_EX flag to prevent anyone else writing to the file at the same time
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+            $this->appendLog($LogFile, "Processing for File ".$this->getRelativePath()." started");
                 
             // Movie Object
             $ffprobe = FFMpeg\FFProbe::create();
@@ -131,8 +145,7 @@ class VideoFile extends File {
 				return false;
 			}
         }else{
-			$Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nFile allready processed\n";
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+			$this->appendLog($LogFile, "File allready processed");
 			return false; 
         }
     }
@@ -140,7 +153,7 @@ class VideoFile extends File {
     private function processVideoInformation($mov, $LogFile){
             
 		try{
-			$Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nExtracted Information:\n";
+			$Message = "Extracted Information:\n";
             $Message.= sprintf("file name = %s\n", $mov->get("filename"));
             $Message.= sprintf("size = %s\n", $mov->get("size"));
             $Message.= sprintf("duration = %s seconds\n", $mov->get("duration"));
@@ -149,9 +162,7 @@ class VideoFile extends File {
             $Message.= sprintf("format long name = %s\n", $mov->get("format_long_name"));
                 
             $Message.= "\n";
-                
-            // Log the next message
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+			$this->appendLog($LogFile, $Message);
                 
             $this->Duration = gmdate("H:i:s", $mov->get('duration'));
             //$this->Width = $mov->getFrameWidth();
@@ -160,10 +171,8 @@ class VideoFile extends File {
                 
             return true;
         }catch(Exception $e){
-			$Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nERROR ON - Extracted Information:\n\n";
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
-            // log exception
-            file_put_contents($LogFile, $e->getMessage(), FILE_APPEND | LOCK_EX);
+			$Message = "ERROR ON - Extracted Information:";
+			$this->appendLog($LogFile, $Message, $e->getMessage());
                 
             $this->ProcessingStatus = 'error';
             $this->write();
@@ -184,8 +193,8 @@ class VideoFile extends File {
             $timestamps[] = gmdate("H:i:s", ($stepsize * $i));
         }
             
-        $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nStart TimelineImage extraction:\n\n";
-        file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+        $Message = "Start TimelineImage extraction:";
+		$this->appendLog($LogFile, $Message);
         
 		try{
 			$sizes = array();
@@ -205,16 +214,14 @@ class VideoFile extends File {
             $this->ProcessingStatus = 'finished';
             $this->write();
                 
-            $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nProcessing for File ".$this->getRelativePath()." finished\n\n";
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+            $Message = "Processing for File ".$this->getRelativePath()." finished";
+			$this->appendLog($LogFile, $Message);
                 
             return true;
         } catch (Exception $ex) {
                 
-            $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nERROR ON - Timeline Image extraction:\n\n";
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
-            // log exception
-            file_put_contents($LogFile, $e->getMessage(), FILE_APPEND | LOCK_EX);
+            $Message = "ERROR ON - Timeline Image extraction:";
+			$this->appendLog($LogFile, $Message, $e->getMessage());
                 
             $this->ProcessingStatus = 'error';
             $this->write();
@@ -247,14 +254,13 @@ class VideoFile extends File {
                     
                 $this->TimelineImages()->add($TimelineImage);
                     
-                $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nAdded Timeline Image:\n";
-                $Message.= $TimelineImage->getRelativePath()."\n\n";
-                    
-                file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+                $Message = "Added Timeline Image:\n";
+                $Message.= $TimelineImage->getRelativePath();
+				$this->appendLog($LogFile, $Message);
             }else{
-                $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nERROR ON - Timeline Image extraction:\n\n";
+                $Message = "ERROR ON - Timeline Image extraction:\n\n";
                 $Message.= "File not loaded: ".$tmpImage;
-                file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
+				$this->appendLog($LogFile, $Message);
                 
                 $this->ProcessingStatus = 'error';
                 $this->write();
@@ -270,11 +276,9 @@ class VideoFile extends File {
                 
         }catch(Exception $ex) {
                 
-            $Message = "[LOGTIME: ".date("Y-m-d H:i:s")."]\nERROR ON - Timeline Image extraction:\n\n";
+            $Message = "ERROR ON - Timeline Image extraction:\n\n";
             $Message.= "File: ".$tmpImage;
-            file_put_contents($LogFile, $Message, FILE_APPEND | LOCK_EX);
-            // log exception
-            file_put_contents($LogFile, $e->getMessage(), FILE_APPEND | LOCK_EX);
+            $this->appendLog($LogFile, $Message, $e->getMessage());
                 
             $this->ProcessingStatus = 'error';
             $this->write();
