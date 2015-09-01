@@ -32,8 +32,8 @@ class ExtendedGDBackend extends DataExtension {
         imagecopyresampled($this->owner->getImageResource(), $image->getImageResource(), $dstX, $dstY, $srcX, $srcY, $dstW, $dstH, $srcW, $srcH);
         
         $output = clone $this->owner;
-	$output->setImageResource($this->owner->getImageResource());
-	return $output;
+		$output->setImageResource($this->owner->getImageResource());
+		return $output;
     }
     
     /**
@@ -61,8 +61,8 @@ class ExtendedGDBackend extends DataExtension {
         }
         
         $output = clone $this->owner;
-	$output->setImageResource($image);
-	return $output;
+		$output->setImageResource($image);
+		return $output;
     }
     
     public function transparentPaddedResize($width, $height) {
@@ -81,10 +81,10 @@ class ExtendedGDBackend extends DataExtension {
 		imagealphablending($newGD, false);
 		imagesavealpha($newGD, true);
                 
-                $transparent = imagecolorallocatealpha($newGD, 0, 0, 0, 127);
+        $transparent = imagecolorallocatealpha($newGD, 0, 0, 0, 127);
                 
 		imagefilledrectangle($newGD, 0, 0, $width, $height, $transparent);
-                imagealphablending($newGD, true);
+        imagealphablending($newGD, true);
 		
 		$destAR = $width / $height;
 		if ($this->owner->getWidth() > 0 && $this->owner->getHeight() > 0) {
@@ -109,9 +109,7 @@ class ExtendedGDBackend extends DataExtension {
 				$destY = round( ($height - $destHeight) / 2 );
 			}
 			
-			imagecopyresampled($newGD, $this->owner->getImageResource(),
-				$destX, $destY, 0, 0,
-				$destWidth, $destHeight, $this->owner->getWidth(), $this->owner->getHeight());
+			imagecopyresampled($newGD, $this->owner->getImageResource(), $destX, $destY, 0, 0, $destWidth, $destHeight, $this->owner->getWidth(), $this->owner->getHeight());
 		}
 		$output = clone $this->owner;
 		$output->setImageResource($newGD);

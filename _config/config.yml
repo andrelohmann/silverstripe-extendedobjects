@@ -1,0 +1,21 @@
+name: extendedobjects
+---
+Image:
+  extensions:
+    - ExtendedImage
+
+File:
+  extensions:
+    - ExtendedFile
+
+Upload:
+  extensions:
+    - ExtendedUpload
+
+GDBackend:
+  extensions:
+    ExtendedGDBackend
+
+Date:
+  extensions:
+    - ExtendedDate

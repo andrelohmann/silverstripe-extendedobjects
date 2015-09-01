@@ -90,7 +90,7 @@ class SecureImage extends Image {
 	 * @return string
 	 */
 	public function getTag() {
-		if(file_exists(Director::baseFolder() . '/' . $this->Filename)) {
+		if($this->exists()) {
 			$url = $this->getURL();
 			$title = ($this->Title) ? $this->Title : $this->Filename;
 			if($this->Title) {
@@ -114,19 +114,21 @@ class SecureImage extends Image {
 	 * @param string $arg2 A second argument to pass to the generate function.
 	 * @return SecureImage_Cached
 	 */
-	public function getFormattedImage($format, $arg1 = null, $arg2 = null) {
-		if($this->ID && $this->Filename && Director::fileExists($this->Filename)) {
-			$cacheFile = $this->cacheFilename($format, $arg1, $arg2);
+	public function getFormattedImage($format) {
+		$args = func_get_args();
 
-			if(!file_exists(Director::baseFolder()."/".$cacheFile) || isset($_GET['flush'])) {
-				$this->generateFormattedImage($format, $arg1, $arg2);
+		if($this->exists()) {
+			$cacheFile = call_user_func_array(array($this, "cacheFilename"), $args);
+
+			if(!file_exists(Director::baseFolder()."/".$cacheFile) || self::$flush) {
+				call_user_func_array(array($this, "generateFormattedImage"), $args);
 			}
 			
 			$cached = new SecureImage_Cached($cacheFile);
 			// Pass through the title so the templates can use it
 			$cached->Title = $this->Title;
-                        $cached->ID = $this->ID;
-                        $cached->ParentID = $this->ParentID;
+            $cached->ID = $this->ID;
+            $cached->ParentID = $this->ParentID;
 			return $cached;
 		}
 	}
@@ -138,10 +140,12 @@ class SecureImage extends Image {
 	 * @param string $arg2 The second argument passed to the generate function.
 	 * @return string
 	 */
-	public function cacheFilename($format, $arg1 = null, $arg2 = null) {
+	public function cacheFilename($format) {
+		$args = func_get_args();
+		array_shift($args);
 		$folder = $this->ParentID ? $this->Parent()->Filename : ASSETS_DIR . "/";
 		
-		$format = $format.$arg1.$arg2;
+		$format = $format.implode('',$args);
                 $file = pathinfo($this->Name);
 		return $folder . "_resampled/".md5($format."-".$file['filename']).".".$file['extension'];
 	}
@@ -167,6 +171,16 @@ class SecureImage_Cached extends SecureImage {
 	public function __construct($filename = null, $isSingleton = false) {
 		parent::__construct(array(), $isSingleton);
 		$this->Filename = $filename;
+	}
+
+	/**
+	 * Override the parent's exists method becuase the ID is explicitly set to -1 on a cached image we can't use the
+	 * default check
+	 *
+	 * @return bool Whether the cached image exists
+	 */
+	public function exists() {
+		return file_exists($this->getFullPath());
 	}
 	
 	public function getRelativePath() {

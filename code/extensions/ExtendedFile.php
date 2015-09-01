@@ -9,7 +9,7 @@
  
 class ExtendedFile extends DataExtension {
 
-        /**
+    /**
 	 * Save an file passed from a form post into this object.
 	 * 
 	 * @param $tmpFile array Indexed array that PHP generated for every file it uploads.
