@@ -14,7 +14,7 @@ Upload:
 
 GDBackend:
   extensions:
-    ExtendedGDBackend
+    - ExtendedGDBackend
 
 Date:
   extensions:
