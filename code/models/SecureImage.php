@@ -8,13 +8,26 @@
  * 
  */
  
-class SecureImage extends Image {
+class SecureImage extends Image implements Flushable {
 		
 	/**
 	 * @var array All attributes on the form field (not the field holder).
 	 * Partially determined based on other instance properties, please use {@link getAttributes()}.
 	 */
 	protected $attributes = array();
+
+	/**
+	 * @config
+	 * @var bool Regenerates images if set to true. This is set by {@link flush()}
+	 */
+	private static $flush = false;
+
+	/**
+	 * Triggered early in the request when someone requests a flush.
+	 */
+	public static function flush() {
+		self::$flush = true;
+	}
 
 	/**
 	 * Set an HTML attribute on the field element, mostly an <input> tag.
