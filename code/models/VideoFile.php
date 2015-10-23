@@ -125,13 +125,23 @@ class VideoFile extends File {
             $this->write();
                 
             $this->appendLog($LogFile, "Processing for File ".$this->getRelativePath()." started");
+            
+			try{
+				// Movie Object
+				$ffprobe = FFMpeg\FFProbe::create();
+				$mov = $ffprobe->format($this->getFullPath());
+				//$ffmpeg = FFMpeg\FFMpeg::create();
+				//$video = $ffmpeg->open($this->getFullPath());
+				//$video->frame(FFMpeg\Coordinate\TimeCode::fromSeconds(10))->save($this->getFullPath().'.jpg');
+			} catch (Exception $ex) {
+				$Message = "ERROR ON - FFProbe:";
+				$this->appendLog($LogFile, $Message, $e->getMessage());
                 
-            // Movie Object
-            $ffprobe = FFMpeg\FFProbe::create();
-            $mov = $ffprobe->format($this->getFullPath());
-            //$ffmpeg = FFMpeg\FFMpeg::create();
-            //$video = $ffmpeg->open($this->getFullPath());
-            //$video->frame(FFMpeg\Coordinate\TimeCode::fromSeconds(10))->save($this->getFullPath().'.jpg');
+				$this->ProcessingStatus = 'error';
+				$this->write();
+                
+				return false;
+			}
                 
             // read data
             if($this->processVideoInformation($mov, $LogFile)){

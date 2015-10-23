@@ -1,0 +1,8 @@
+---
+Name: customroutes
+After: framework/routes#coreroutes
+---
+Director:
+  rules:
+    'AudioFileDataExtractionTask' : 'AudioFileDataExtractionTask'
+    'VideoFileDataExtractionTask' : 'VideoFileDataExtractionTask'
