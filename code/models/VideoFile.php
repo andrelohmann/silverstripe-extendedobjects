@@ -30,6 +30,13 @@ class VideoFile extends File {
     );
 	
 	protected $log_file = null;
+	
+	public function DurationSeconds(){
+		$h = $this->obj('Duration')->Format('G');
+		$m = (int)$this->obj('Duration')->Format('i');
+		$s = (int)$this->obj('Duration')->Format('s');
+		return $s + (60 * $m) + (60 * 60 * $h);
+	}
         
     public function PreviewThumbnail(){
 		if($this->ProcessingStatus == 'finished' && $this->PreviewImageID > 0)
