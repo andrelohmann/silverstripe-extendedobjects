@@ -214,7 +214,8 @@ class VideoFile extends File {
 		$this->appendLog($LogFile, $Message);
         
 		try{
-			$sizes = array();
+			// Old Algorithm calculated by sizes
+			/*$sizes = array();
                 
             foreach($timestamps as $stamp){
 				if($size = $this->extractTimelineImage($LogFile, $stamp)){
@@ -222,7 +223,28 @@ class VideoFile extends File {
 				}
             }
             krsort($sizes);
-            $this->PreviewImageID = array_shift($sizes);
+            $this->PreviewImageID = array_shift($sizes);*/
+			
+			// New Algorithm calculated by biggest face
+			$sizes = array();
+			$faces = array();
+			
+			foreach($timestamps as $stamp){
+				if($img = $this->extractTimelineImage($LogFile, $stamp)){
+					
+					$sizes[$img['Size']] = $img['ID'];
+					
+					if(isset($img['Face']['w'])) $faces[$img['Face']['w']] = $img['ID'];
+				}
+            }
+			
+			if(count($faces) > 0){
+				krsort($faces);
+				$this->PreviewImageID = array_shift($faces);
+			}else{
+				krsort($sizes);
+				$this->PreviewImageID = array_shift($sizes);
+			}
                 
             $PreviewImage = $this->PreviewImage();
             $this->Width = $PreviewImage->getWidth();
@@ -285,7 +307,7 @@ class VideoFile extends File {
                 return false;
             }
                 
-            $return = array('ID' => $TimelineImage->ID, 'Size' => filesize($tmpImage));
+            $return = array('ID' => $TimelineImage->ID, 'Size' => filesize($tmpImage), 'Face' => $TimelineImage->DetectFace());
             // tmp File löschen
             unlink($tmpImage);
                 

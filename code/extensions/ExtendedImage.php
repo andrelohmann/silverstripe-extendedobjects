@@ -44,6 +44,69 @@ class ExtendedImage extends DataExtension {
 
                 return "data:image/".$type.";base64,".$Base64Image;
         }
+		
+		public function DetectFace(){
+			$detector = new svay\FaceDetector();
+			$detector->faceDetect($this->owner->getFullPath());
+			return $detector->getFace();
+		}
+		
+		public function DetectedFace(){
+			if($this->owner->exists()) {
+				$cacheFile = $this->owner->cacheDetectedFaceFilename();
+
+				if(!file_exists(Director::baseFolder()."/".$cacheFile) || isset($_GET['flush'])) {
+					$this->owner->generateDetectedFaceImage();
+				}
+				
+				if(get_class($this->owner) == 'SecureImage') $cached = new SecureImage_Cached($cacheFile);
+				else $cached = new Image_Cached($cacheFile);
+
+				// Pass through the title so the templates can use it
+				$cached->owner->Title = $this->owner->Title;
+				$cached->owner->ID = $this->owner->ID;
+				$cached->owner->ParentID = $this->owner->ParentID;
+				return $cached;
+			}
+		}
+	
+		/**
+		 * Return the filename for the cached image.
+		 * @return string
+		 */
+		public function cacheDetectedFaceFilename() {
+			$folder = $this->owner->ParentID ? $this->owner->Parent()->Filename : ASSETS_DIR . "/";
+
+			$format = 'DetectedFace';
+
+			if(get_class($this->owner) == 'SecureImage'){
+				$file = pathinfo($this->owner->Name);
+				return $folder . "_resampled/".md5($format."-".$file['filename']).".".$file['extension'];
+			}else{
+				return $folder . "_resampled/".$format."-".$this->owner->Name;
+			}
+		}
+	
+		/**
+		 * Generate an image on the specified format. It will save the image
+		 * at the location specified by cacheFilename(). The image will be generated
+		 * using the specific 'generate' method for the specified format.
+		 */
+		public function generateDetectedFaceImage() {
+			$cacheFile = $this->owner->cacheDetectedFaceFilename();
+
+			$backend = Injector::inst()->createWithArgs(Image::get_backend(), array(
+				Director::baseFolder()."/" . $this->owner->Filename
+			));
+
+			if($backend->hasImageResource()){
+				$backend = $backend->detectedFaceImage($this->DetectFace());
+				
+				if($backend){
+					$backend->writeTo(Director::baseFolder()."/" . $cacheFile);
+				}
+			}
+		}
 	
 		/**
 		 * Return an XHTML img tag for this Image,
@@ -94,7 +157,7 @@ class ExtendedImage extends DataExtension {
             if($this->owner->exists() && Director::fileExists($mergeimage)) {
                 $cacheFile = $this->owner->cacheMergedFilename($format, $padding, $mergeimage);
                 
-                if(!file_exists(Director::baseFolder()."/".$cacheFile) || self::$flush) {
+                if(!file_exists(Director::baseFolder()."/".$cacheFile) || isset($_GET['flush'])) {
                     // merge the current image over the given Merging Image
                     if($format == 'over') $this->owner->generateMergedImage($padding, $mergeimage, $this->owner->getFullPath(), $cacheFile);
                     // merge the current image over the given Merging Image
@@ -199,7 +262,7 @@ class ExtendedImage extends DataExtension {
 			if($this->owner->exists()) {
 				$cacheFile = $this->owner->cacheTransparentFilename($format, $arg1, $arg2);
 
-				if(!file_exists(Director::baseFolder()."/".$cacheFile) || self::$flush) {
+				if(!file_exists(Director::baseFolder()."/".$cacheFile) || isset($_GET['flush'])) {
 					$this->owner->generateTransparentFormattedImage($format, $arg1, $arg2);
 				}
 				

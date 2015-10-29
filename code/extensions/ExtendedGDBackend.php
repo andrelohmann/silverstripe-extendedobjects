@@ -115,4 +115,26 @@ class ExtendedGDBackend extends DataExtension {
 		$output->setImageResource($newGD);
 		return $output;
 	}
+    
+    public function detectedFaceImage($face){
+		if(!$this->owner->getImageResource()) return;
+		
+		if ($face == null){
+			return $this->owner;
+		}
+		
+		$color = imagecolorallocate($this->owner->getImageResource(), 255, 0, 0); //red
+		imagerectangle(
+            $this->owner->getImageResource(),
+            $face['x'],
+            $face['y'],
+            $face['x']+$face['w'],
+            $face['y']+$face['w'],
+            $color
+        );
+		
+		$output = clone $this->owner;
+		$output->setImageResource($this->owner->getImageResource());
+		return $output;
+	}
 }
