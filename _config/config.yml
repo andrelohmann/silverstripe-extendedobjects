@@ -1,5 +1,9 @@
 name: extendedobjects
 ---
+DataObject:
+  extensions:
+    - AddGeodistanceFunction
+
 Image:
   extensions:
     - ExtendedImage
